@@ -27,6 +27,7 @@ jobs:
       EXPO_PUBLIC_INSTAGRAM_APP_ID: ${{ vars.INSTAGRAM_APP_ID }}
       # Without a Maps key the map shows no tiles (the route still draws). Add GOOGLE_MAPS_ANDROID_KEY as a secret.
       GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,7 +44,7 @@ jobs:
       - run: npx tsc --noEmit
 
       - name: Optional production keystore (from ANDROID_KEYSTORE_BASE64 secret)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"

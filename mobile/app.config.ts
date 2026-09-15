@@ -83,6 +83,7 @@ const config: ExpoConfig = {
         iosGoogleMapsApiKey: env('GOOGLE_MAPS_IOS_KEY'),
       },
     ],
+    './plugins/withReleaseSigning.js',
   ],
   extra: {
     router: {},

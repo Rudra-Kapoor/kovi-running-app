@@ -17,31 +17,13 @@ const googleConfigured = !!(GOOGLE_WEB || GOOGLE_IOS || GOOGLE_ANDROID);
 
 /** Google (both platforms) and Apple (iOS) sign-in buttons. Hidden until the client IDs are configured. */
 export function SocialAuth({ onError }: { onError: (msg: string) => void }) {
-  const { signInWithGoogle, signInWithApple } = useAuth();
+  const { signInWithApple } = useAuth();
   const [busy, setBusy] = useState<'google' | 'apple' | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB || undefined,
-    iosClientId: GOOGLE_IOS || undefined,
-    androidClientId: GOOGLE_ANDROID || undefined,
-  });
 
   useEffect(() => {
     if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!response) return;
-    if (response.type === 'success' && response.params.id_token) {
-      setBusy('google');
-      signInWithGoogle(response.params.id_token)
-        .catch((e) => onError(e.message))
-        .finally(() => setBusy(null));
-    } else if (response.type === 'error') {
-      onError(response.error?.message ?? 'Google sign-in failed');
-    }
-  }, [response]);
 
   async function apple() {
     setBusy('apple');
@@ -71,16 +53,7 @@ export function SocialAuth({ onError }: { onError: (msg: string) => void }) {
         <Text style={styles.dividerText}>or continue with</Text>
         <View style={styles.divider} />
       </View>
-      {googleConfigured && (
-        <Button
-          title="Google"
-          variant="secondary"
-          disabled={!request}
-          loading={busy === 'google'}
-          onPress={() => promptAsync()}
-          icon={<Ionicons name="logo-google" size={18} color={colors.text} />}
-        />
-      )}
+      {googleConfigured && <GoogleButton busy={busy === 'google'} setBusy={(b) => setBusy(b ? 'google' : null)} onError={onError} />}
       {appleAvailable && (
         <Button
           title="Apple"
@@ -91,6 +64,39 @@ export function SocialAuth({ onError }: { onError: (msg: string) => void }) {
         />
       )}
     </View>
+  );
+}
+
+/** Mounted only when a Google client ID exists - the hook throws an invariant otherwise. */
+function GoogleButton({ busy, setBusy, onError }: { busy: boolean; setBusy: (b: boolean) => void; onError: (m: string) => void }) {
+  const { signInWithGoogle } = useAuth();
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    webClientId: GOOGLE_WEB || undefined,
+    iosClientId: GOOGLE_IOS || undefined,
+    androidClientId: GOOGLE_ANDROID || undefined,
+  });
+
+  useEffect(() => {
+    if (!response) return;
+    if (response.type === 'success' && response.params.id_token) {
+      setBusy(true);
+      signInWithGoogle(response.params.id_token)
+        .catch((e) => onError(e.message))
+        .finally(() => setBusy(false));
+    } else if (response.type === 'error') {
+      onError(response.error?.message ?? 'Google sign-in failed');
+    }
+  }, [response]);
+
+  return (
+    <Button
+      title="Google"
+      variant="secondary"
+      disabled={!request}
+      loading={busy}
+      onPress={() => promptAsync()}
+      icon={<Ionicons name="logo-google" size={18} color={colors.text} />}
+    />
   );
 }
 

@@ -31,7 +31,7 @@ export function RouteMap({
         animated: false,
       });
     }
-  }, [route.length === 0]);
+  }, [route.length > 1]);
 
   const segments: RoutePoint[][] = [];
   for (const p of route) {

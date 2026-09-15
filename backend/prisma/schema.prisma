@@ -1,0 +1,143 @@
+// Kovi Running App - database schema
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  APPLE
+}
+
+/// Distance categories shared by events and the global leaderboard (PRD open question resolved: they match).
+enum DistanceCategory {
+  FIVE_K
+  TEN_K
+  HALF_MARATHON
+}
+
+model User {
+  id                  String       @id @default(uuid())
+  email               String       @unique
+  passwordHash        String?
+  provider            AuthProvider @default(EMAIL)
+  providerId          String?
+  name                String
+  photoUrl            String?
+  city                String?
+  state               String?
+  country             String?
+  club                String?
+  onboardingCompleted Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  runs           Run[]
+  participations EventParticipation[]
+  passwordResets PasswordReset[]
+
+  @@index([city])
+  @@index([state])
+  @@index([country])
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Event {
+  id               String           @id @default(uuid())
+  name             String
+  description      String
+  bannerUrl        String?
+  sponsorLogoUrl   String?
+  distanceCategory DistanceCategory
+  date             DateTime
+  location         String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  participations EventParticipation[]
+  runs           Run[]
+
+  @@index([date])
+  @@index([deletedAt])
+}
+
+model EventParticipation {
+  id       String   @id @default(uuid())
+  userId   String
+  eventId  String
+  club     String?
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  /// A user can only join an event once.
+  @@unique([userId, eventId])
+  @@index([eventId])
+}
+
+model Run {
+  id              String    @id @default(uuid())
+  userId          String
+  eventId         String?
+  startedAt       DateTime
+  endedAt         DateTime
+  /// Moving time in seconds (pauses excluded).
+  durationSeconds Int
+  distanceMeters  Float
+  /// Average pace in seconds per kilometre.
+  avgPaceSecPerKm Float?
+  /// Recorded GPS route: [{ lat, lng, t (unix ms), alt? }]
+  route           Json
+  /// Elapsed moving seconds when the runner crossed 5 km / 10 km / 21.0975 km (null if not reached).
+  split5kSeconds  Int?
+  split10kSeconds Int?
+  split21kSeconds Int?
+  createdAt       DateTime  @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([userId, startedAt])
+  @@index([eventId])
+  @@index([split5kSeconds])
+  @@index([split10kSeconds])
+  @@index([split21kSeconds])
+}
+
+/// Uploaded files when STORAGE_DRIVER=db (banners, sponsor logos, profile photos).
+model FileObject {
+  id        String   @id @default(uuid())
+  mimeType  String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+}

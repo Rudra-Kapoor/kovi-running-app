@@ -1,0 +1,50 @@
+name: Admin panel - deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['admin/**', '.github/workflows/admin-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /kovi-running-app/
+          # Set the API_URL repository variable (Settings > Secrets and variables > Actions > Variables)
+          # to point the hosted panel at the deployed API. It can also be changed on the login screen.
+          VITE_API_URL: ${{ vars.API_URL || 'https://kovi-api.onrender.com' }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: admin/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

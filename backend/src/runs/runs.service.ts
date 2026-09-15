@@ -1,15 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DistanceCategory, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { RoutePoint, summariseRoute } from '../common/utils/geo';
 import { EventsService } from '../events/events.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRunDto } from './dto/create-run.dto';
-
-export const SPLIT_FIELD: Record<DistanceCategory, 'split5kSeconds' | 'split10kSeconds' | 'split21kSeconds'> = {
-  FIVE_K: 'split5kSeconds',
-  TEN_K: 'split10kSeconds',
-  HALF_MARATHON: 'split21kSeconds',
-};
 
 const runInclude = {
   event: {

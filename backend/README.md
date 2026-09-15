@@ -58,6 +58,12 @@ at which 5 km, 10 km and 21.0975 km were crossed. Leaderboards rank those split 
   city / state / country. Standalone (non-event) runs count by default; pass `scope=events` to restrict.
 - A run shorter than the category distance never appears on that board.
 
+## Demo data
+
+```bash
+npx prisma db seed     # adds a few sample events (idempotent)
+```
+
 ## Tests
 
 ```bash
